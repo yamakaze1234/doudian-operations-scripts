@@ -1,0 +1,16 @@
+{
+  "name": "douyin-stock-zero",
+  "version": "0.2.3",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/*.test.cjs",
+    "build": "node build.cjs"
+  },
+  "devDependencies": {
+    "jsdom": "^30.0.1"
+  }
+}
+
+
+
+

@@ -1,0 +1,11 @@
+const {test}=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const path=require('node:path');
+const C=fs.existsSync(path.join(__dirname,'../src/core.js'))?require('../src/core.js'):{};
+const spu='3795722043610234968',sku='3705468991113730';
+test('四列导入保持长ID并以分保存标价',()=>{assert.equal(typeof C.parse,'function');const [r]=C.parse(`${spu}\t${sku}\t配置1:A\t6599.99`);assert.equal(r.spu,spu);assert.equal(r.skuId,sku);assert.equal(r.cents,659999);});
+test('表头多列表格按列名取售价忽略可销与配置列',()=>{assert.equal(typeof C.parse,'function');const [r]=C.parse(`SPU\tSKU\t配置\t简称\t可销\t售价\n${spu}\t${sku}\t\t配置1:A\t4\t6599`);assert.equal(r.cents,659900);});
+test('三列支持无SKU，整名匹配；引号内换行可解析',()=>{assert.equal(typeof C.parse,'function');const [r]=C.parse(`${spu}\t"配置1:A\n丨豪华版"\t6599`);assert.equal(r.skuId,'');assert.match(r.name,/豪华版/);});
+test('金额拒绝零负数超过两位小数公式和科学计数，ID不接受科学计数',()=>{assert.equal(typeof C.parse,'function');for(const price of ['0','-1','1.001','1e3','=1+1','NaN'])assert.throws(()=>C.parse(`${spu}\t${sku}\t配置1:A\t${price}`));assert.throws(()=>C.parse(`3.795722E18\t${sku}\t配置1:A\t6599`));});
+test('重复目标同价去重，冲突价格拒绝',()=>{assert.equal(typeof C.parse,'function');assert.equal(C.parse(`${spu}\t${sku}\t配置1:A\t6599\n${spu}\t${sku}\t配置1:A\t6599.00`).length,1);assert.throws(()=>C.parse(`${spu}\t${sku}\t配置1:A\t6599\n${spu}\t${sku}\t配置1:A\t6600`));});
+test('SKU ID与名称必须同时匹配，名称差异不降级',()=>{assert.equal(typeof C.match,'function');const catalog=[{skuId:sku,name:'配置1:A',cents:700000}];const good=C.match(C.parse(`${spu}\t${sku}\t配置1： A\t6599`),catalog);assert.equal(good[0].status,'匹配');assert.equal(good[0].before.cents,700000);assert.equal(C.match(C.parse(`${spu}\t${sku}\t配置1:B\t6599`),catalog)[0].status,'名称不一致');});
+test('无SKU仅接受唯一整名，不以编号或包含匹配',()=>{assert.equal(typeof C.match,'function');const catalog=[{skuId:sku,name:'配置1:A',cents:1},{skuId:'3705468991113986',name:'配置1:A',cents:2}];assert.equal(C.match(C.parse(`${spu}\t配置1:A\t6599`),catalog)[0].status,'歧义');assert.equal(C.match(C.parse(`${spu}\t配置1\t6599`),catalog)[0].status,'未匹配');});
+test('别名输入最终指向同SKU且价格冲突时阻止该SKU',()=>{assert.equal(typeof C.match,'function');const results=C.match(C.parse(`${spu}\t${sku}\t配置1:A\t6599\n${spu}\t\t配置1:A\t6600`),[{skuId:sku,name:'配置1:A',cents:700000}]);assert.ok(results.every(r=>r.status==='目标价格冲突'));});

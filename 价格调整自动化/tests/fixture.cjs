@@ -1,0 +1,9 @@
+const {JSDOM}=require('jsdom');
+function fixture({count=20,stalled=false,gap=false}={}){
+ const d=new JSDOM(`<div class="ecom-g-modal-content"><h2>编辑价格</h2><div class="ecom-g-table"><table><thead><tr>${['配置','价格','到手价','SKUID','商家编码','预览图','SKU状态'].map(h=>`<th>${h}</th>`).join('')}</tr></thead></table><div class="ecom-g-table-tbody-virtual-holder"><div id="inner"></div></div></div><button>保存</button><button>取消</button></div>`,{pretendToBeVisual:true,runScripts:'outside-only',url:'https://fxg.jinritemai.com/ffa/g/list'});
+ const doc=d.window.document,root=doc.querySelector('.ecom-g-modal-content'),holder=root.querySelector('.ecom-g-table-tbody-virtual-holder');const records=Array.from({length:count},(_,i)=>({key:String(1872023995027500n+BigInt(i)),skuId:String(3704744331828226n+BigInt(i)),name:`配置${i+1}:A`,cents:500000+i*100,code:`CODE${i}`,state:'已上架'}));
+ Object.defineProperty(holder,'clientHeight',{value:270});Object.defineProperty(holder,'scrollHeight',{get:()=>count*90});holder.getBoundingClientRect=()=>({top:0,bottom:270,height:270});
+ function render(){const first=stalled?0:Math.floor(holder.scrollTop/90);const list=records.slice(first,first+4);holder.querySelector('#inner').innerHTML='';for(const r of list){const idx=records.indexOf(r);if(gap&&idx===7)continue;const row=doc.createElement('tr');row.className='ecom-g-table-row';row.dataset.rowKey=r.key;row.innerHTML=`<td>${r.name}</td><td><input type="number" value="${(r.cents/100).toFixed(2)}"></td><td>￥4000.00</td><td>${r.skuId}</td><td><input type="text" value="${r.code}"></td><td></td><td>${r.state}</td>`;row.getBoundingClientRect=()=>({top:idx*90-holder.scrollTop,bottom:(idx+1)*90-holder.scrollTop,height:90});row.querySelector('input').addEventListener('input',e=>{r.cents=Math.round(Number(e.target.value)*100);});holder.querySelector('#inner').append(row);}}
+ holder.addEventListener('scroll',render);render();return {d,root,holder,records};
+}
+module.exports={fixture};

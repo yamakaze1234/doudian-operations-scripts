@@ -1,0 +1,14 @@
+node_modules/
+outputs/
+导入数据/
+.env
+.env.*
+!.env.example
+*.log
+*.tmp
+*.zip
+__pycache__/
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
